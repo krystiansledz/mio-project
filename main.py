@@ -1,9 +1,11 @@
+from turtle import shape
 import numpy as np
 import ga
 import ann
 import matplotlib.pyplot
 import math
 import os
+from BeeHive import *
 # data_inputs = np.load("dataset_features.npy")
 
 # Optional step of filtering the input data using the standard deviation.
@@ -79,12 +81,26 @@ for curr_sol in np.arange(0, sol_per_pop):
     initial_pop_weights.append(np.array([input_HL1_weights, HL1_HL2_weights, HL2_output_weights]))
 
 pop_weights_mat = np.array(initial_pop_weights)
+print('pop_weights_mat', pop_weights_mat.shape)
+
 pop_weights_vector = ga.mat_to_vector(pop_weights_mat)
 
-print(train_data_input.shape[1])
+hive = BeeHive(lower = -5, upper = 5,
+            shape = [train_data_input.shape[1], 150,60,4],
+            fitness = ann.fitness, 
+            numb_bees    =  30   ,
+            max_itrs     = 100   ,
+            max_trials   = 30  ,
+            verbose      = True ,
+            input_data   = train_data_input, 
+            output_data  = train_data_output)
 
-best_outputs = []
-accuracies = np.empty(shape=(num_generations))
+hive.run()
+
+# print(train_data_input.shape[1])
+
+# best_outputs = []
+# accuracies = np.empty(shape=(num_generations))
 
 # for generation in range(num_generations):
 #     print("Generation : ", generation)

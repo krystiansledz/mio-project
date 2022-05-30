@@ -1,5 +1,6 @@
 from Bee import *
 import copy
+import numpy as np
 
 class BeeHive(object):
     """
@@ -20,13 +21,15 @@ class BeeHive(object):
     
     def __init__(self                 ,
                  lower, upper         ,
+                 shape,
                  fitness = None, 
                  numb_bees    =  30   ,
                  max_itrs     = 100   ,
-                 max_trials   = 10  ,
+                 max_trials   = None  ,
                  verbose      = False ,
                  input_data   = [], 
-                 output_data  = []):
+                 output_data  = [],
+                 pop_weights_mat = []):
         """
         Instantiates a bee hive object.
         1. INITIALISATION PHASE.
@@ -38,34 +41,42 @@ class BeeHive(object):
         ----------
             :param list lower          : lower bound of solution vector
             :param list upper          : upper bound of solution vector
-            :param def fun             : evaluation function of the optimal problem
-            :param def numb_bees       : number of active bees within the hive
+            :param int shape            : shape of the solution vector
+            :param int numb_bees       : number of active bees within the hive
             :param int max_trials      : max number of trials without any improvment
             :param boolean verbose     : makes computation verbose
         """
 
-        # computes the number of employees ?? TO TEST
-        self.size = int((numb_bees + numb_bees % 2))
+        # assigns properties of the optimisation problem
+        self.fitness = fitness
+        self.lower    = lower
+        self.upper    = upper
+        self.shape = shape
+        self.size = sum([shape[i] * shape[i+1] for i in range(len(shape)-1)])
+        print(self.size)
+
+        # computes the number of employees
+        self.numb_bees = int((numb_bees + numb_bees % 2))
 
         # assigns properties of algorithm
-        self.dim = len(lower)
+    
         self.max_itrs = max_itrs
+        
         if (max_trials == None):
-            self.max_trials = 0.6 * self.size * self.dim
+            self.max_trials = 0.6 * self.numb_bees * self.size
         else:
             self.max_trials = max_trials
 
-        # assigns properties of the optimisation problem
-        self.evaluate = fun
-        self.lower    = lower
-        self.upper    = upper
-
         # initialises current best and its a solution vector
-        self.best = sys.float_info.max
+        self.best = 0
         self.solution = None
 
+        # save input_data and output_data
+        self.input_data = input_data
+        self.output_data = output_data
+        
         # creates a bee hive
-        self.population = [ Bee(self, lower, upper, fun) for i in range(self.size) ]
+        self.population = [ Bee(self) for _ in range(self.numb_bees) ]
 
         # initialises best solution vector to food nectar
         self.find_best()
@@ -83,7 +94,7 @@ class BeeHive(object):
         for itr in range(self.max_itrs):
 
             # employees phase
-            for index in range(self.size):
+            for index in range(self.numb_bees):
                 self.send_employee(index)
 
             # onlookers phase
@@ -97,7 +108,7 @@ class BeeHive(object):
 
             # stores convergence information
             cost["best"].append( self.best )
-            cost["mean"].append( sum( [ bee.value for bee in self.population ] ) / self.size )
+            cost["mean"].append( sum( [ bee.value for bee in self.population ] ) / self.numb_bees )
 
             # prints out information about computation
             if self.verbose:
@@ -123,54 +134,44 @@ class BeeHive(object):
         """
 
         # retrieves fitness of bees within the hive
-        values = [bee.fitness for bee in self.population]
+        values = [ bee.value for bee in self.population ]
         max_values = max(values)
 
         # computes probalities the way Karaboga does in his classic ABC implementation
-        if (self.selfun == None):
-            self.probas = [0.9 * v / max_values + 0.1 for v in values]
-        else:
-            if (self.extra_params != None):
-                self.probas = self.selfun(list(values), **self.extra_params)
-            else:
-                self.probas = self.selfun(values)
-
+        self.probas = [0.9 * v / max_values + 0.1 for v in values]
+        
         # returns intervals of probabilities
-        return [sum(self.probas[:i+1]) for i in range(self.size)]
+        return [sum(self.probas[:i+1]) for i in range(self.numb_bees)]
 
     def send_employee(self, index):
         """
         2. SEND EMPLOYED BEES PHASE.
         ---------------------------
         During this 2nd phase, new candidate solutions are produced for
-        each employed bee by cross-over and mutation of the employees.
+        each employed bee by mutation and mutation of the employees.
         If the modified vector of the mutant bee solution is better than
         that of the original bee, the new vector is assigned to the bee.
         """
 
         # deepcopies current bee solution vector
-        zombee = copy.deepcopy(self.population[index])
+        employee = copy.deepcopy(self.population[index])
 
         # draws a dimension to be crossed-over and mutated
-        d = random.randint(0, self.dim-1)
+        vector_index = random.randint(0, self.size-1)
 
         # selects another bee
         bee_ix = index
-        while (bee_ix == index): bee_ix = random.randint(0, self.size-1)
+        while (bee_ix == index): bee_ix = random.randint(0, self.numb_bees-1)
 
-        # produces a mutant based on current bee and bee's friend
-        zombee.vector[d] = self._crossover(d, index, bee_ix)
+        # produces a child based on current bee and bee's friend
+        employee.vector[vector_index] = self._mutation(vector_index, index, bee_ix)
 
-        # checks boundaries
-        zombee.vector = self._check(zombee.vector, dim=d)
-
-        # computes fitness of mutant
-        zombee.value = self.evaluate(zombee.vector)
-        zombee._fitness()
+        # computes fitness of child
+        employee._fitness()
 
         # deterministic crowding
-        if (zombee.fitness > self.population[index].fitness):
-            self.population[index] = copy.deepcopy(zombee)
+        if (employee.value > self.population[index].value):
+            self.population[index] = copy.deepcopy(employee)
             self.population[index].counter = 0
         else:
             self.population[index].counter += 1
@@ -188,8 +189,8 @@ class BeeHive(object):
         """
 
         # sends onlookers
-        numb_onlookers = 0; beta = 0
-        while (numb_onlookers < self.size):
+        beta = 0
+        for _ in range(self.numb_bees):
 
             # draws a random number from U[0,1]
             phi = random.random()
@@ -204,8 +205,6 @@ class BeeHive(object):
             # sends new onlooker
             self.send_employee(index)
 
-            # increments number of onlookers
-            numb_onlookers += 1
 
     def select(self, beta):
         """
@@ -229,11 +228,11 @@ class BeeHive(object):
         """
 
         # computes probability intervals "online" - i.e. re-computed after each onlooker
-        probas = self.compute_probability()
+        self.compute_probability()
 
         # selects a new potential "onlooker" bee
-        for index in range(self.size):
-            if (beta < probas[index]):
+        for index in range(self.numb_bees):
+            if (beta < self.probas[index]):
                 return index
 
     def send_scout(self):
@@ -254,21 +253,21 @@ class BeeHive(object):
         """
 
         # retrieves the number of trials for all bees
-        trials = [ self.population[i].counter for i in range(self.size) ]
+        trials = [ self.population[i].counter for i in range(self.numb_bees) ]
 
         # identifies the bee with the greatest number of trials
-        index = trials.index(max(trials))
+        indexes = list(filter(None, [index if t > self.max_trials else None for index, t in enumerate(trials)]))
 
         # checks if its number of trials exceeds the pre-set maximum number of trials
-        if (trials[index] > self.max_trials):
+        for index in indexes:
 
             # creates a new scout bee randomly
-            self.population[index] = Bee(self.lower, self.upper, self.evaluate)
+            self.population[index] = Bee(self)
 
             # sends scout bee to exploit its solution vector
             self.send_employee(index)
 
-    def _crossover(self, dim, current_bee, other_bee):
+    def _mutation(self, dim, current_bee, other_bee):
         """
         Mutates a given solution vector - i.e. for continuous
         real-values.
@@ -276,35 +275,20 @@ class BeeHive(object):
         ----------
             :param int dim         : vector's dimension to be mutated
             :param int current_bee : index of current bee
-            :param int other_bee   : index of another bee to cross-over
+            :param int other_bee   : index of another bee to mutation
         """
 
-        return self.population[current_bee].vector[dim]    + \
+        new_value = self.population[current_bee].vector[dim]    + \
                (random.random() - 0.5) * 2                 * \
                (self.population[current_bee].vector[dim] - self.population[other_bee].vector[dim])
 
-    def _check(self, vector, dim=None):
-        """
-        Checks that a solution vector is contained within the
-        pre-determined lower and upper bounds of the problem.
-        """
+        if (new_value < self.lower):
+            new_value = self.lower
 
-        if (dim == None):
-            range_ = range(self.dim)
-        else:
-            range_ = [dim]
+        if (new_value > self.upper):
+            new_value = self.upper
 
-        for i in range_:
-
-            # checks lower bound
-            if  (vector[i] < self.lower[i]):
-                vector[i] = self.lower[i]
-
-            # checks upper bound
-            elif (vector[i] > self.upper[i]):
-                vector[i] = self.upper[i]
-
-        return vector
+        return new_value
 
     def _verbose(self, itr, cost):
         """ Displays information about computation. """

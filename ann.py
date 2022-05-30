@@ -26,7 +26,6 @@ def predict_outputs(weights_mat, data_inputs, data_outputs, activation="relu"):
 
 def fitness(weights_mat, data_inputs, data_outputs, activation="relu"):
     accuracy = np.empty(shape=(weights_mat.shape[0]))
-    for sol_idx in range(weights_mat.shape[0]):
-        curr_sol_mat = weights_mat[sol_idx, :]
-        accuracy[sol_idx], _ = predict_outputs(curr_sol_mat, data_inputs, data_outputs, activation=activation)
+    curr_sol_mat = weights_mat[:]
+    accuracy, _ = predict_outputs(curr_sol_mat, data_inputs, data_outputs, activation=activation)
     return accuracy
