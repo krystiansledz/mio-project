@@ -88,7 +88,7 @@ pop_weights_vector = ga.mat_to_vector(pop_weights_mat)
 hive = BeeHive(lower = -5, upper = 5,
             shape = [train_data_input.shape[1], 150,60,4],
             fitness = ann.fitness, 
-            numb_bees    =  30   ,
+            numb_bees    =  5   ,
             max_itrs     = 100   ,
             max_trials   = 30  ,
             verbose      = True ,

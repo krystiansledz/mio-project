@@ -1,6 +1,7 @@
 from Bee import *
 import copy
 import numpy as np
+import random
 
 class BeeHive(object):
     """
@@ -156,15 +157,16 @@ class BeeHive(object):
         # deepcopies current bee solution vector
         employee = copy.deepcopy(self.population[index])
 
-        # draws a dimension to be crossed-over and mutated
-        vector_index = random.randint(0, self.size-1)
 
         # selects another bee
         bee_ix = index
         while (bee_ix == index): bee_ix = random.randint(0, self.numb_bees-1)
 
         # produces a child based on current bee and bee's friend
-        employee.vector[vector_index] = self._mutation(vector_index, index, bee_ix)
+        indexes = [i for i in range(self.size)]
+        random.shuffle(indexes)
+        for i in indexes[:int(self.size*(5/100))]:
+            employee.vector[i] = self._mutation(i, index, bee_ix)
 
         # computes fitness of child
         employee._fitness()
