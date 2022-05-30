@@ -49,7 +49,10 @@ for fruit in fruits:
     train_data_output = np.append(train_data_output, train, axis=0)
     test_data_output = np.append(test_data_output, test, axis=0)
 
-
+    
+with open('test.npy', 'wb') as f:
+    np.save(f, np.array([1, 2]))
+    np.save(f, np.array([1, 3]))
 #Genetic algorithm parameters:
 #    Mating Pool Size (Number of Parents)
 #    Population Size
@@ -78,25 +81,27 @@ for curr_sol in np.arange(0, sol_per_pop):
 pop_weights_mat = np.array(initial_pop_weights)
 pop_weights_vector = ga.mat_to_vector(pop_weights_mat)
 
+print(train_data_input.shape[1])
+
 best_outputs = []
 accuracies = np.empty(shape=(num_generations))
 
-for generation in range(num_generations):
-    print("Generation : ", generation)
+# for generation in range(num_generations):
+#     print("Generation : ", generation)
 
-    # converting the solutions from being vectors to matrices.
-    pop_weights_mat = ga.vector_to_mat(pop_weights_vector, 
-                                       pop_weights_mat)
+#     # converting the solutions from being vectors to matrices.
+#     pop_weights_mat = ga.vector_to_mat(pop_weights_vector, 
+#                                        pop_weights_mat)
 
-    # Measuring the fitness of each chromosome in the population.
-    fitness = ann.fitness(pop_weights_mat, 
-                          train_data_input, 
-                          train_data_output, 
-                          activation="sigmoid")
+#     # Measuring the fitness of each chromosome in the population.
+#     fitness = ann.fitness(pop_weights_mat, 
+#                           train_data_input, 
+#                           train_data_output, 
+#                           activation="sigmoid")
 
-    accuracies[generation] = fitness[0]
-    print("Fitness")
-    print(fitness)
+#     accuracies[generation] = fitness[0]
+#     print("Fitness")
+#     print(fitness)
 
 #     # Selecting the best parents in the population for mating.
 #     parents = ga.select_mating_pool(pop_weights_vector, 
