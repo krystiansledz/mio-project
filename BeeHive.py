@@ -1,7 +1,7 @@
 from Bee import *
 import copy
-import numpy as np
 import random
+
 
 class BeeHive(object):
     """
@@ -19,18 +19,9 @@ class BeeHive(object):
     is equal to the number of onlooker bees.
     """
 
-    
-    def __init__(self                 ,
-                 lower, upper         ,
-                 shape,
-                 fitness = None, 
-                 numb_bees    =  30   ,
-                 max_itrs     = 100   ,
-                 max_trials   = None  ,
-                 verbose      = False ,
-                 input_data   = [], 
-                 output_data  = [],
-                 pop_weights_mat = []):
+    def __init__(self, lower, upper, shape, fitness=None, numb_bees=30,
+                 max_itrs=100, max_trials=None, verbose=False, input_data=[],
+                 output_data=[]):
         """
         Instantiates a bee hive object.
         1. INITIALISATION PHASE.
@@ -50,8 +41,8 @@ class BeeHive(object):
 
         # assigns properties of the optimisation problem
         self.fitness = fitness
-        self.lower    = lower
-        self.upper    = upper
+        self.lower = lower
+        self.upper = upper
         self.shape = shape
         self.size = sum([shape[i] * shape[i+1] for i in range(len(shape)-1)])
         print(self.size)
@@ -60,10 +51,9 @@ class BeeHive(object):
         self.numb_bees = int((numb_bees + numb_bees % 2))
 
         # assigns properties of algorithm
-    
         self.max_itrs = max_itrs
         
-        if (max_trials == None):
+        if max_trials is None:
             self.max_trials = 0.6 * self.numb_bees * self.size
         else:
             self.max_trials = max_trials
@@ -77,7 +67,7 @@ class BeeHive(object):
         self.output_data = output_data
         
         # creates a bee hive
-        self.population = [ Bee(self) for _ in range(self.numb_bees) ]
+        self.population = [Bee(self) for _ in range(self.numb_bees)]
 
         # initialises best solution vector to food nectar
         self.find_best()
@@ -91,7 +81,7 @@ class BeeHive(object):
     def run(self):
         """ Runs an Artificial Bee Colony (ABC) algorithm. """
 
-        cost = {}; cost["best"] = []; cost["mean"] = []
+        cost = {"best": [], "mean": []}
         for itr in range(self.max_itrs):
 
             # employees phase
@@ -100,23 +90,21 @@ class BeeHive(object):
 
             # onlookers phase
             self.send_onlookers()
-
             # scouts phase
             self.send_scout()
-
             # computes best path
             self.find_best()
 
             # stores convergence information
-            cost["best"].append( self.best )
-            cost["mean"].append( sum( [ bee.value for bee in self.population ] ) / self.numb_bees )
+            cost["best"].append(self.best)
+            cost["mean"].append(sum([bee.value for bee in
+                                     self.population])/self.numb_bees)
 
             # prints out information about computation
             if self.verbose:
                 self._verbose(itr, cost)
 
         return cost
-
 
     def find_best(self):
         """ Finds current best bee candidate. """
@@ -138,7 +126,8 @@ class BeeHive(object):
         values = [ bee.value for bee in self.population ]
         max_values = max(values)
 
-        # computes probalities the way Karaboga does in his classic ABC implementation
+        # computes probalities the way Karaboga does in his classic
+        # ABC implementation
         self.probas = [0.9 * v / max_values + 0.1 for v in values]
         
         # returns intervals of probabilities

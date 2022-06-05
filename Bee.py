@@ -1,6 +1,6 @@
 import random
-import ann
 import numpy as np
+
 
 class Bee(object):
     """ Creates a bee object. """
