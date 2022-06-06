@@ -2,6 +2,7 @@ from Bee import *
 import copy
 import numpy as np
 import random
+from datetime import datetime
 
 class BeeHive(object):
     """
@@ -21,16 +22,15 @@ class BeeHive(object):
 
     
     def __init__(self                 ,
-                 lower, upper         ,
-                 shape,
-                 fitness = None, 
-                 numb_bees    =  30   ,
+                 lower, upper, shape,
+                 fitness      = None, 
+                 numb_bees    = 30   ,
                  max_itrs     = 100   ,
                  max_trials   = None  ,
+                 mutation     = 1,
                  verbose      = False ,
                  input_data   = [], 
-                 output_data  = [],
-                 pop_weights_mat = []):
+                 output_data  = []):
         """
         Instantiates a bee hive object.
         1. INITIALISATION PHASE.
@@ -54,7 +54,7 @@ class BeeHive(object):
         self.upper    = upper
         self.shape = shape
         self.size = sum([shape[i] * shape[i+1] for i in range(len(shape)-1)])
-        print(self.size)
+        self.mutation_percent = mutation
 
         # computes the number of employees
         self.numb_bees = int((numb_bees + numb_bees % 2))
@@ -91,6 +91,10 @@ class BeeHive(object):
     def run(self):
         """ Runs an Artificial Bee Colony (ABC) algorithm. """
 
+        file = open('results' + str(datetime.now()) + '.txt', 'w')
+        file.write(f'Bees: {self.numb_bees}; mutation precent: {self.mutation_percent}\n')
+        file.write('Iter best mean\n')
+
         cost = {}; cost["best"] = []; cost["mean"] = []
         for itr in range(self.max_itrs):
 
@@ -113,8 +117,9 @@ class BeeHive(object):
 
             # prints out information about computation
             if self.verbose:
-                self._verbose(itr, cost)
-
+                self._verbose(itr, cost, file)
+        
+        file.close()
         return cost
 
 
@@ -165,7 +170,7 @@ class BeeHive(object):
         # produces a child based on current bee and bee's friend
         indexes = [i for i in range(self.size)]
         random.shuffle(indexes)
-        for i in indexes[:int(self.size*(5/100))]:
+        for i in indexes[:int(self.size*(self.mutation_percent/100))]:
             employee.vector[i] = self._mutation(i, index, bee_ix)
 
         # computes fitness of child
@@ -292,8 +297,9 @@ class BeeHive(object):
 
         return new_value
 
-    def _verbose(self, itr, cost):
+    def _verbose(self, itr, cost, file):
         """ Displays information about computation. """
 
+        file.write(f'{int(itr)} {cost["best"][itr]} {cost["mean"][itr]}\n')
         msg = "# Iter = {} | Best Evaluation Value = {} | Mean Evaluation Value = {} "
         print(msg.format(int(itr), cost["best"][itr], cost["mean"][itr]))

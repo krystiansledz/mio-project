@@ -86,11 +86,12 @@ print('pop_weights_mat', pop_weights_mat.shape)
 pop_weights_vector = ga.mat_to_vector(pop_weights_mat)
 
 hive = BeeHive(lower = -5, upper = 5,
-            shape = [train_data_input.shape[1], 150,60,4],
-            fitness = ann.fitness, 
-            numb_bees    =  5   ,
+            shape        = [train_data_input.shape[1],150,60,4],
+            fitness      = ann.fitness, 
+            numb_bees    = 10   ,
             max_itrs     = 100   ,
             max_trials   = 30  ,
+            mutation     = 20,
             verbose      = True ,
             input_data   = train_data_input, 
             output_data  = train_data_output)
