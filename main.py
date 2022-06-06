@@ -14,20 +14,18 @@ for fruit in fruits:
     file_name = 'data/' + fruit + "_dataset.npy"
     data = np.load(file_name)
     train_data_length = int(np.round(len(data) * train_data_ratio))
-    train, test = data[:train_data_length, ...],  data[train_data_length:, ...]
+    train, test = data[:train_data_length, ...], data[train_data_length:, ...]
     train_data_input = np.append(train_data_input, train, axis=0)
     test_data_input = np.append(test_data_input, test, axis=0)
-
 
 for fruit in fruits:
     file_name = 'data/' + fruit + "_outputs.npy"
     data = np.load(file_name)
     train_data_length = int(np.round(len(data) * train_data_ratio))
-    train, test = data[:train_data_length, ...],  data[train_data_length:, ...]
+    train, test = data[:train_data_length, ...], data[train_data_length:, ...]
     train_data_output = np.append(train_data_output, train, axis=0)
     test_data_output = np.append(test_data_output, test, axis=0)
 
-    
 with open('test.npy', 'wb') as f:
     np.save(f, np.array([1, 2]))
     np.save(f, np.array([1, 3]))
@@ -58,8 +56,8 @@ print('pop_weights_mat', pop_weights_mat.shape)
 
 pop_weights_vector = ga.mat_to_vector(pop_weights_mat)
 
-hive = BeeHive(lower=-5, upper=5, shape=[train_data_input.shape[1], 150,60,4],
-               fitness=ga.fitness, numb_bees=5, max_itrs=100, max_trials=30,
+hive = BeeHive(lower=-5, upper=5, shape=[train_data_input.shape[1], 150, 60, 4],
+               fitness=ga.fitness, numb_bees=5, max_itrs=100, max_trials=5,
                verbose=True, input_data=train_data_input,
                output_data=train_data_output)
 
