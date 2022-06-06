@@ -28,22 +28,30 @@ class Bee(object):
 
     def _random(self, lower, upper):
         """ Initialises a solution vector randomly. """
-        startTime = time.time()
+        
         self.vector = [lower + random.random() * (upper - lower) for _ in range(self.size)]
-        endTime = time.time()
-        print('Bee _random time: ', endTime - startTime)
+        
 
-    def _fitness(self):
+    def _fitness(self, input_data = None, output_data = None, replace_value = True):
         """ Evaluates the fitness of a solution vector. """
-        startTime = time.time()
-        self.value = self.fitness(self.vector_to_mat(), self.bee_hive.input_data, self.bee_hive.output_data,
+
+        if input_data is None:
+            input_data = self.bee_hive.input_data
+        if output_data is None:
+            output_data = self.bee_hive.output_data
+
+        value = self.fitness(self.vector_to_mat(), input_data, output_data,
                                   activation="sigmoid")
-        endTime = time.time()
-        print('Bee _fitness time: ', endTime - startTime)
-        return self.value
+
+        if replace_value:
+            self.value = value
+        
+
+
+        return value
 
     def vector_to_mat(self):
-        startTime = time.time()
+        
         vector_pop_weights = self.vector
         mat_pop_weights = self.matrix_shape
         mat_weights = []
@@ -56,6 +64,6 @@ class Bee(object):
             mat_layer_weights = np.reshape(curr_vector, newshape=mat_pop_weights[layer_idx].shape)
             mat_weights.append(mat_layer_weights)
             start = end
-        endTime = time.time()
-        print('Bee vector_to_mat time: ', endTime - startTime)
+        
+        
         return np.reshape(mat_weights, newshape=mat_pop_weights.shape)

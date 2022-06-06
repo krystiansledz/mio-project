@@ -8,7 +8,7 @@ test_data_output = np.empty(0, dtype=int)
 
 fruits = ["apple", "raspberry", "mango", "lemon"]
 
-train_data_ratio = 0.9
+train_data_ratio = 0.7
 
 for fruit in fruits:
     file_name = 'data/' + fruit + "_dataset.npy"
@@ -25,6 +25,11 @@ for fruit in fruits:
     train, test = data[:train_data_length, ...], data[train_data_length:, ...]
     train_data_output = np.append(train_data_output, train, axis=0)
     test_data_output = np.append(test_data_output, test, axis=0)
+
+print(train_data_input.shape)
+print(test_data_input.shape)
+print(train_data_output.shape)
+print(test_data_output.shape)
 
 with open('test.npy', 'wb') as f:
     np.save(f, np.array([1, 2]))
@@ -65,6 +70,8 @@ hive = BeeHive(lower = -5, upper = 5,
             mutation     = 20,
             verbose      = True ,
             input_data   = train_data_input, 
-            output_data  = train_data_output)
+            output_data  = train_data_output,
+            input_test_data   = test_data_input, 
+            output_test_data  = test_data_output)
 
 hive.run()

@@ -30,8 +30,10 @@ class BeeHive(object):
                  max_trials   = None  ,
                  mutation     = 1,
                  verbose      = False ,
-                 input_data   = [], 
-                 output_data  = []):
+                 input_data   = None, 
+                 output_data  = None,
+                 input_test_data   = None, 
+                 output_test_data  = None):
         """
         Instantiates a bee hive object.
         1. INITIALISATION PHASE.
@@ -48,7 +50,7 @@ class BeeHive(object):
             :param int numb_bees       : number of active bees within the hive
             :param int max_itrs        : number of max iterations
             :param int max_trials      : max number of trials without any improvement
-            :param float mutation_prob : mutation probability
+            :param float mutation      : mutation probability
             :param boolean verbose     : makes computation verbose
             :param ndarray input_data  : input data for fitness function
             :param ndarray output_data : output data for fitness function
@@ -73,8 +75,6 @@ class BeeHive(object):
         else:
             self.max_trials = max_trials
 
-        self.mutation_prob = mutation_prob
-
         # initialises current best and its a solution vector
         self.best = 0
         self.solution = None
@@ -84,8 +84,14 @@ class BeeHive(object):
             input_data = []
         if output_data is None:
             output_data = []
+        if input_test_data is None:
+            input_test_data = []
+        if output_test_data is None:
+            output_test_data = []
         self.input_data = input_data
         self.output_data = output_data
+        self.input_test_data = input_test_data
+        self.output_test_data = output_test_data
 
         # creates a bee hive
         self.population = [Bee(self) for _ in range(self.numb_bees)]
@@ -103,10 +109,13 @@ class BeeHive(object):
         """ Runs an Artificial Bee Colony (ABC) algorithm. """
 
         file = open('results' + str(datetime.now()) + '.txt', 'w')
-        file.write(f'Bees: {self.numb_bees}; mutation precent: {self.mutation_percent}\n')
-        file.write('Iter best mean\n')
+        file.write(f'Bees: {self.numb_bees}; mutation precent: {self.mutation_percent}; max trials: {self.max_trials}\n')
+        file.write('Iter best mean test time\n')
 
-        cost = {"best": [], "mean": []}
+        file_values = open('values' + str(datetime.now()) + '.txt', 'w')
+        file_values.write(f'Bees: {self.numb_bees}; mutation precent: {self.mutation_percent}; max trials: {self.max_trials}\n')
+
+        cost = {"best": [], "mean": [], "best_test": [], "time": [], "values": []}
         for itr in range(self.max_itrs):
             startTime = time.time()
 
@@ -119,25 +128,26 @@ class BeeHive(object):
             # scouts phase
             self.send_scout()
             # computes best path
-            self.find_best()
+            best_index = self.find_best()
 
             # stores convergence information
             cost["best"].append(self.best)
             cost["mean"].append(sum([bee.value for bee in self.population]) / self.numb_bees)
+            cost["best_test"].append(self.population[best_index]._fitness(input_data=self.input_test_data, output_data=self.output_test_data, replace_value=False))
+            cost["time"].append(time.time() - startTime)
+            cost["values"].append([bee.value for bee in self.population])
 
-            endTime = time.time()
-            print('BeeHive _iter time: ', endTime - startTime)
 
             # prints out information about computation
             if self.verbose:
-                self._verbose(itr, cost, file)
+                self._verbose(itr, cost, file, file_values)
         
         file.close()
+        file_values.close()
         return cost
 
     def find_best(self):
         """ Finds current best bee candidate. """
-        startTime = time.time()
 
         values = [bee.value for bee in self.population]
         index = values.index(max(values))
@@ -145,8 +155,7 @@ class BeeHive(object):
             self.best = values[index]
             self.solution = self.population[index].vector
 
-        endTime = time.time()
-        print('BeeHive find_best time: ', endTime - startTime)
+        return index
 
     def compute_probability(self):
         """
@@ -154,7 +163,6 @@ class BeeHive(object):
         chosen by an onlooker bee after the Waggle dance ceremony when
         employed bees are back within the hive.
         """
-        startTime = time.time()
 
         # retrieves fitness of bees within the hive
         values = [bee.value for bee in self.population]
@@ -166,8 +174,7 @@ class BeeHive(object):
 
         # returns intervals of probabilities
         returnValue = [sum(self.probas[:i + 1]) for i in range(self.numb_bees)]
-        endTime = time.time()
-        print('BeeHive compute_probability time: ', endTime - startTime)
+
         return returnValue
 
     def send_employee(self, index):
@@ -179,33 +186,48 @@ class BeeHive(object):
         If the modified vector of the mutant bee solution is better than
         that of the original bee, the new vector is assigned to the bee.
         """
-        startTime = time.time()
 
+        
         # deepcopies current bee solution vector
-        employee = copy.deepcopy(self.population[index])
+        employee = self.population[index]
+        vector_copy = self.population[index].vector.copy()
+        value_copy = self.population[index].value
+
+
 
         # selects another bee
+
+
         bee_ix = index
         while bee_ix == index: bee_ix = random.randint(0, self.numb_bees - 1)
 
+
+
         # produces a child based on current bee and bee's friend
+
+
         indexes = [i for i in range(self.size)]
         random.shuffle(indexes)
-        for i in indexes[:int(self.size * self.mutation_prob)]:
+        
+        for i in indexes[:int(self.size * (self.mutation_percent/100))]:
             employee.vector[i] = self._mutation(i, index, bee_ix)
+
+
 
         # computes fitness of child
         employee._fitness()
 
         # deterministic crowding
-        if employee.value > self.population[index].value:
-            self.population[index] = copy.deepcopy(employee)
+
+        if employee.value > value_copy:
             self.population[index].counter = 0
         else:
+            self.population[index].vector = vector_copy
+            self.population[index].value = value_copy
             self.population[index].counter += 1
 
-        endTime = time.time()
-        print('BeeHive send_employee time: ', endTime - startTime)
+
+
 
     def send_onlookers(self):
         """
@@ -218,7 +240,7 @@ class BeeHive(object):
         If they improve it, they will communicate their findings to the bee
         they initially watched "waggle dancing".
         """
-        startTime = time.time()
+
 
         # sends onlookers
         beta = 0
@@ -236,8 +258,8 @@ class BeeHive(object):
             # sends new onlooker
             self.send_employee(index)
 
-        endTime = time.time()
-        print('BeeHive send_onlookers time: ', endTime - startTime)
+
+
 
     def select(self, beta):
         """
@@ -259,7 +281,6 @@ class BeeHive(object):
         ------------
             :param float beta : "roulette wheel selection" parameter - i.e. 0 <= beta <= max(probas)
         """
-        startTime = time.time()
 
         # computes probability intervals "online" - i.e. re-computed after each onlooker
         self.compute_probability()
@@ -269,8 +290,7 @@ class BeeHive(object):
             if beta < self.probas[index]:
                 return index
 
-        endTime = time.time()
-        print('BeeHive select time: ', endTime - startTime)
+        
 
     def send_scout(self):
         """
@@ -288,7 +308,7 @@ class BeeHive(object):
         Intuitively, this method provides an easy means to overcome any local
         optima within which a bee may have been trapped.
         """
-        startTime = time.time()
+
 
 
         # retrieves the number of trials for all bees
@@ -305,8 +325,8 @@ class BeeHive(object):
             # sends scout bee to exploit its solution vector
             self.send_employee(index)
 
-        endTime = time.time()
-        print('BeeHive send_scout time: ', endTime - startTime)
+
+
 
     def _mutation(self, dim, current_bee, other_bee):
         """
@@ -330,9 +350,10 @@ class BeeHive(object):
 
         return new_value
 
-    def _verbose(self, itr, cost, file):
+    def _verbose(self, itr, cost, file, file_values):
         """ Displays information about computation. """
 
-        file.write(f'{int(itr)} {cost["best"][itr]} {cost["mean"][itr]}\n')
-        msg = "# Iter = {} | Best Evaluation Value = {} | Mean Evaluation Value = {} "
-        print(msg.format(int(itr), cost["best"][itr], cost["mean"][itr]))
+        file.write(f'{int(itr)} {cost["best"][itr]} {cost["mean"][itr]} {cost["best_test"][itr]} {cost["time"][itr]}\n')
+        file_values.write(f'{cost["values"][itr]}\n')
+        msg = "# Iter = {} | Best Evaluation Value = {} | Mean Evaluation Value = {} | Test data evaluation = {} | Time = {}"
+        print(msg.format(int(itr), cost["best"][itr], cost["mean"][itr], cost["best_test"][itr], cost["time"][itr]))
