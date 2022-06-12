@@ -1,20 +1,5 @@
 import numpy as np
 
-
-# Converting each solution from matrix to vector.
-def mat_to_vector(mat_pop_weights):
-    pop_weights_vector = []
-    for sol_idx in range(mat_pop_weights.shape[0]):
-        curr_vector = []
-        for layer_idx in range(mat_pop_weights.shape[1]):
-            vector_weights = np.reshape(mat_pop_weights[sol_idx, layer_idx],
-                                        newshape=(mat_pop_weights[
-                                                      sol_idx, layer_idx].size))
-            curr_vector.extend(vector_weights)
-        pop_weights_vector.append(curr_vector)
-    return np.array(pop_weights_vector)
-
-
 def sigmoid(inpt):
     return 1.0 / (1.0 + np.exp(-1 * inpt))
 
