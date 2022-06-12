@@ -59,8 +59,6 @@ for curr_sol in np.arange(0, sol_per_pop):
 pop_weights_mat = np.array(initial_pop_weights)
 print('pop_weights_mat', pop_weights_mat.shape)
 
-pop_weights_vector = ga.mat_to_vector(pop_weights_mat)
-
 hive = BeeHive(lower = -5, upper = 5,
             shape        = [train_data_input.shape[1],150,60,4],
             fitness      = ga.fitness, 
